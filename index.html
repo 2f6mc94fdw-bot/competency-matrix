@@ -1,0 +1,172 @@
+// Show questionnaire screen
+        function showQuestionnaireScreen() {
+            const q = window.currentQuestionnaire;
+            let questionsHTML = '';
+            
+            q.questions.forEach((question, idx) => {
+                const answer = q.answers[question.code] || 0;
+                questionsHTML += `
+                    <div style="background: white; border: 2px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1rem; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+                        <div style="margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <span style="padding: 0.5rem 0.75rem; background: #dbeafe; color: #1e40af; border-radius: 0.5rem; font-weight: 700; font-size: 0.875rem; border: 1px solid #93c5fd;">${question.code}</span>
+                                <span style="font-size: 0.875rem; color: #64748b; font-weight: 600; background: #f1f5f9; padding: 0.5rem 0.75rem; border-radius: 0.5rem;">Weight: ×${(question.weight || 1).toFixed(1)}</span>
+                            </div>
+                            <p style="color: #1e293b; font-size: 1.125rem; font-weight: 500; line-height: 1.6;">${question.question}</p>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+                            ${[0, 1, 2, 3].map(level => `
+                                <button onclick="setAnswer('${question.code}', ${level})" 
+                                        style="padding: 1rem; border: 2px solid ${answer === level ? '#2563eb' : '#e2e8f0'}; 
+                                               background: ${answer === level ? '#2563eb' : 'white'}; 
+                                               color: ${answer === level ? 'white' : '#475569'}; 
+                                               border-radius: 0.75rem; cursor: pointer; font-weight: 700; font-size: 1.125rem; transition: all 0.2s;"
+                                        onmouseover="if(${answer !== level}) { this.style.borderColor='#93c5fd'; this.style.background='#dbeafe'; }"
+                                        onmouseout="if(${answer !== level}) { this.style.borderColor='#e2e8f0'; this.style.background='white'; }">
+                                    L${level}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            const completed = Object.values(q.answers).filter(a => a > 0).length;
+            const progress = (completed / q.questions.length) * 100;
+            
+            document.getElementById('app').innerHTML = `
+                <div style="min-height: 100vh; background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 50%, #f1f5f9 100%);">
+                    <div style="background: white; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10;">
+                        <div style="max-width: 80rem; margin: 0 auto; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <div>
+                                    <h1 style="font-size: 1.5rem; font-weight: 800; color: #1e293b;">${q.areaName}</h1>
+                                    <p style="color: #64748b; font-weight: 600;">${currentUser.name}</p>
+                                </div>
+                                <div style="display: flex; gap: 0.75rem;">
+                                    <button onclick="showDashboard()" style="padding: 0.625rem 1.25rem; border: 2px solid #e2e8f0; border-radius: 0.75rem; background: white; cursor: pointer; font-weight: 700; transition: all 0.2s;"
+                                            onmouseover="this.style.background='#f8fafc';"
+                                            onmouseout="this.style.background='white';">
+                                        Cancel
+                                    </button>
+                                    <button onclick="saveQuestionnaire()" style="padding: 0.625rem 1.25rem; background: linear-gradient(135deg, #2563eb, #1e40af); color: white; border: none; border-radius: 0.75rem; cursor: pointer; font-weight: 700; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.2s;"
+                                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0, 0, 0, 0.2)';"
+                                            onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.1)';">
+                                        💾 Save
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: #64748b; font-weight: 600; margin-bottom: 0.5rem;">
+                                    <span>${completed}/${q.questions.length} questions</span>
+                                    <span>${progress.toFixed(0)}% complete</span>
+                                </div>
+                                <div style="width: 100%; background: #e2e8f0; border-radius: 9999px; height: 0.75rem;">
+                                    <div style="background: linear-gradient(90deg, #2563eb, #1e40af); height: 0.75rem; border-radius: 9999px; width: ${progress}%; transition: width 0.3s;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="max-width: 80rem; margin: 0 auto; padding: 2rem;">
+                        ${questionsHTML}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Set answer
+        function setAnswer(code, level) {
+            window.currentQuestionnaire.answers[code] = level;
+            showQuestionnaireScreen();
+        }
+        
+        // Save questionnaire
+        function saveQuestionnaire() {
+            const q = window.currentQuestionnaire;
+            let totalWeighted = 0;
+            let totalWeight = 0;
+            
+            q.questions.forEach(question => {
+                const answer = q.answers[question.code] || 0;
+                const weight = question.weight || 1;
+                totalWeighted += answer * weight;
+                totalWeight += 3 * weight;
+            });
+            
+            const score = totalWeight > 0 ? totalWeighted / totalWeight : 0;
+            
+            currentUser.scores[q.areaName] = score;
+            
+            appData.engineers = appData.engineers.map(e => 
+                e.id === currentUser.id ? currentUser : e
+            );
+            
+            saveData();
+            alert('✓ Progress saved successfully!');
+            showDashboard();
+        }
+        
+        // Update engineer
+        function updateEngineer(id, field, value) {
+            appData.engineers = appData.engineers.map(e => 
+                e.id === id ? { ...e, [field]: value } : e
+            );
+            saveData();
+        }
+        
+        // Add engineer
+        function addEngineer() {
+            const newEng = {
+                id: Date.now(),
+                name: 'New Engineer',
+                shift: 'A',
+                password: 'password123',
+                scores: {}
+            };
+            appData.areas.forEach(area => { newEng.scores[area] = 0; });
+            appData.engineers.push(newEng);
+            saveData();
+            showAdminPanel();
+        }
+        
+        // Calculate weighted score
+        function calculateWeightedScore(engineer) {
+            let totalWeighted = 0;
+            let totalWeight = 0;
+            
+            appData.areas.forEach(area => {
+                const score = engineer.scores[area] || 0;
+                const weight = appData.areaWeights[area] || 1;
+                totalWeighted += score * weight;
+                totalWeight += weight;
+            });
+            
+            return totalWeight > 0 ? totalWeighted / totalWeight : 0;
+        }
+        
+        // Get score color
+        function getScoreColor(score) {
+            if (score === 0) return 'background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;';
+            if (score < 0.3) return 'background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;';
+            if (score < 0.6) return 'background: #fffbeb; color: #d97706; border: 1px solid #fde68a;';
+            if (score < 0.9) return 'background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;';
+            return 'background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0;';
+        }
+        
+        // Logout
+        function logout() {
+            currentUser = null;
+            isAdmin = false;
+            showLoginScreen();
+        }
+        
+        // Initialize app
+        if (loadData()) {
+            showLoginScreen();
+        } else {
+            showUploadScreen();
+        }
+    </script>
+</body>
+</html>
