@@ -1,1214 +1,726 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Baxter Healthcare - Competency Matrix</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #dbeafe 50%, #f1f5f9 100%);
-            min-height: 100vh;
-        }
-        
-        :root {
-            --baxter-blue: #0066cc;
-            --baxter-dark-blue: #004c99;
-            --baxter-light-blue: #e6f2ff;
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border: #e2e8f0;
-            --success: #059669;
-            --warning: #d97706;
-            --error: #dc2626;
-        }
-        
-        .header {
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            border-bottom: 2px solid var(--baxter-blue);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        .header-content {
-            max-width: 90rem;
-            margin: 0 auto;
-            padding: 1.5rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-title {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .baxter-logo {
-            width: 3rem;
-            height: 3rem;
-            background: linear-gradient(135deg, var(--baxter-blue), var(--baxter-dark-blue));
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 800;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
-        }
-        
-        .container {
-            max-width: 90rem;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 1rem;
-            padding: 2rem;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            border: 1px solid var(--border);
-            margin-bottom: 1.5rem;
-        }
-        
-        h1 { font-size: 1.875rem; font-weight: 800; color: var(--text-primary); margin: 0; }
-        h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1.5rem; }
-        h3 { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
-        
-        .subtitle { color: var(--text-secondary); font-weight: 500; margin-top: 0.25rem; }
-        
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            border: none;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9375rem;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(135deg, var(--baxter-blue), var(--baxter-dark-blue));
-            color: white;
-            box-shadow: 0 2px 8px rgba(0,102,204,0.3);
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,102,204,0.4);
-        }
-        
-        .btn-secondary {
-            background: white;
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-        }
-        
-        .btn-secondary:hover {
-            background: #f8fafc;
-            border-color: var(--baxter-blue);
-        }
-        
-        .btn-danger {
-            background: var(--error);
-            color: white;
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        input, select, textarea {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 2px solid var(--border);
-            border-radius: 0.5rem;
-            font-size: 0.9375rem;
-            transition: all 0.2s;
-            font-family: inherit;
-        }
-        
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: var(--baxter-blue);
-            box-shadow: 0 0 0 3px rgba(0,102,204,0.1);
-        }
-        
-        .form-group {
-            margin-bottom: 1.25rem;
-        }
-        
-        .label {
-            display: block;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-        }
-        
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border);
-            margin-bottom: 2rem;
-            gap: 0.5rem;
-        }
-        
-        .tab {
-            padding: 1rem 1.5rem;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: var(--text-secondary);
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
-            font-size: 0.9375rem;
-        }
-        
-        .tab:hover {
-            color: var(--baxter-blue);
-            background: var(--baxter-light-blue);
-        }
-        
-        .tab.active {
-            color: var(--baxter-blue);
-            border-bottom-color: var(--baxter-blue);
-            background: var(--baxter-light-blue);
-        }
-        
-        .progress-container {
-            margin-bottom: 1rem;
-        }
-        
-        .progress-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 0.75rem;
-            background: var(--border);
-            border-radius: 9999px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--baxter-blue), var(--baxter-dark-blue));
-            transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(0,102,204,0.5);
-        }
-        
-        .badge {
-            padding: 0.375rem 0.875rem;
-            border-radius: 0.375rem;
-            font-weight: 700;
-            font-size: 0.8125rem;
-            display: inline-block;
-        }
-        
-        .badge-gray { background: #f1f5f9; color: #64748b; }
-        .badge-red { background: #fee2e2; color: #dc2626; }
-        .badge-yellow { background: #fef3c7; color: #d97706; }
-        .badge-blue { background: #dbeafe; color: #0066cc; }
-        .badge-green { background: #d1fae5; color: #059669; }
-        
-        .area-card {
-            border: 2px solid var(--border);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            transition: all 0.2s;
-            background: white;
-        }
-        
-        .area-card:hover {
-            border-color: var(--baxter-blue);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            transform: translateY(-2px);
-        }
-        
-        .question-card {
-            background: white;
-            border: 2px solid var(--border);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            margin-bottom: 1.25rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        }
-        
-        .level-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.75rem;
-            margin-top: 1rem;
-        }
-        
-        .level-btn {
-            padding: 1.25rem 0.5rem;
-            border: 2px solid var(--border);
-            background: white;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-weight: 700;
-            font-size: 1rem;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        
-        .level-btn:hover {
-            border-color: var(--baxter-blue);
-            background: var(--baxter-light-blue);
-        }
-        
-        .level-btn.active {
-            border-color: var(--baxter-blue);
-            background: var(--baxter-blue);
-            color: white;
-            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
-        }
-        
-        .score-hero {
-            background: linear-gradient(135deg, var(--baxter-blue), var(--baxter-dark-blue));
-            border-radius: 1rem;
-            padding: 2.5rem;
-            color: white;
-            margin-bottom: 2rem;
-            box-shadow: 0 8px 24px rgba(0,102,204,0.3);
-        }
-        
-        .score-number {
-            font-size: 3.5rem;
-            font-weight: 800;
-            line-height: 1;
-            margin: 0.5rem 0;
-        }
-        
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
-        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-        
-        .flex { display: flex; }
-        .flex-between { display: flex; justify-content: space-between; align-items: center; }
-        .flex-center { display: flex; justify-content: center; align-items: center; }
-        .gap-1 { gap: 0.5rem; }
-        .gap-2 { gap: 1rem; }
-        
-        .mb-1 { margin-bottom: 0.5rem; }
-        .mb-2 { margin-bottom: 1rem; }
-        .mb-4 { margin-bottom: 2rem; }
-        .mt-2 { margin-top: 1rem; }
-        
-        .upload-zone {
-            border: 3px dashed var(--border);
-            border-radius: 1rem;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8fafc;
-        }
-        
-        .upload-zone:hover {
-            border-color: var(--baxter-blue);
-            background: var(--baxter-light-blue);
-            transform: scale(1.02);
-        }
-        
-        .auth-screen {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-        
-        .auth-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 3rem;
-            max-width: 28rem;
-            width: 100%;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.12);
-            border: 1px solid var(--border);
-        }
-        
-        .auth-logo {
-            width: 5rem;
-            height: 5rem;
-            margin: 0 auto 2rem;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        
-        .data-table th {
-            background: #f8fafc;
-            padding: 1rem;
-            text-align: left;
-            font-weight: 700;
-            border-bottom: 2px solid var(--border);
-            color: var(--text-primary);
-        }
-        
-        .data-table td {
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .data-table tr:hover {
-            background: #f8fafc;
-        }
-        
-        @media (max-width: 768px) {
-            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-            .header-content { flex-direction: column; gap: 1rem; }
-            .score-number { font-size: 2.5rem; }
-            .container { padding: 1rem; }
-            .level-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-        
-        .hidden { display: none !important; }
-        .text-center { text-align: center; }
-        .fw-bold { font-weight: 700; }
-        .text-muted { color: var(--text-secondary); }
-    </style>
-</head>
-<body>
-    <div id="app"></div>
+import React, { useState, useEffect, createContext, useContext } from 'react';
+import { BarChart3, Users, BookOpen, HelpCircle, LogOut, Upload, Eye, Trash2, Plus, Save, ArrowLeft, Download } from 'lucide-react';
+
+// ============================================================================
+// CONTEXT & STATE MANAGEMENT
+// ============================================================================
+
+const AppContext = createContext();
+
+const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useApp must be used within AppProvider');
+  return context;
+};
+
+// ============================================================================
+// SERVICES / DATA LAYER
+// ============================================================================
+
+const StorageService = {
+  async saveEngineers(engineers) {
+    try {
+      await window.storage.set('engineers', JSON.stringify(engineers));
+    } catch (error) {
+      console.error('Error saving engineers:', error);
+    }
+  },
+
+  async loadEngineers() {
+    try {
+      const result = await window.storage.get('engineers');
+      return result ? JSON.parse(result.value) : [];
+    } catch (error) {
+      console.error('Error loading engineers:', error);
+      return [];
+    }
+  },
+
+  async saveAreas(areas) {
+    try {
+      await window.storage.set('areas', JSON.stringify(areas));
+    } catch (error) {
+      console.error('Error saving areas:', error);
+    }
+  },
+
+  async loadAreas() {
+    try {
+      const result = await window.storage.get('areas');
+      return result ? JSON.parse(result.value) : [];
+    } catch (error) {
+      console.error('Error loading areas:', error);
+      return [];
+    }
+  },
+
+  async saveQuestions(questionsByArea) {
+    try {
+      await window.storage.set('questions', JSON.stringify(questionsByArea));
+    } catch (error) {
+      console.error('Error saving questions:', error);
+    }
+  },
+
+  async loadQuestions() {
+    try {
+      const result = await window.storage.get('questions');
+      return result ? JSON.parse(result.value) : {};
+    } catch (error) {
+      console.error('Error loading questions:', error);
+      return {};
+    }
+  },
+
+  async saveAreaWeights(weights) {
+    try {
+      await window.storage.set('area-weights', JSON.stringify(weights));
+    } catch (error) {
+      console.error('Error saving weights:', error);
+    }
+  },
+
+  async loadAreaWeights() {
+    try {
+      const result = await window.storage.get('area-weights');
+      return result ? JSON.parse(result.value) : {};
+    } catch (error) {
+      console.error('Error loading weights:', error);
+      return {};
+    }
+  },
+
+  async initializeData() {
+    const [engineers, areas, questions, weights] = await Promise.all([
+      this.loadEngineers(),
+      this.loadAreas(),
+      this.loadQuestions(),
+      this.loadAreaWeights()
+    ]);
+    return { engineers, areas, questionsByArea: questions, areaWeights: weights };
+  }
+};
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+const calculateWeightedScore = (engineer, areaWeights) => {
+  if (!engineer.scores) return 0;
+  let totalWeighted = 0;
+  let totalWeight = 0;
+  
+  Object.keys(engineer.scores).forEach(area => {
+    const score = engineer.scores[area] || 0;
+    const weight = areaWeights[area] || 1;
+    totalWeighted += score * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? totalWeighted / totalWeight : 0;
+};
+
+const getScoreBadgeClass = (score) => {
+  if (score >= 0.8) return 'bg-green-100 text-green-700';
+  if (score >= 0.6) return 'bg-blue-100 text-blue-700';
+  if (score >= 0.4) return 'bg-yellow-100 text-yellow-700';
+  return 'bg-red-100 text-red-700';
+};
+
+// ============================================================================
+// COMPONENTS
+// ============================================================================
+
+// Header Component
+const Header = ({ title, subtitle, rightContent }) => (
+  <div className="bg-white shadow-sm border-b-2 border-blue-600 sticky top-0 z-50">
+    <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg">
+          B
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+          <p className="text-sm text-gray-600">{subtitle}</p>
+        </div>
+      </div>
+      {rightContent}
+    </div>
+  </div>
+);
+
+// Button Component
+const Button = ({ children, onClick, variant = 'primary', icon: Icon, ...props }) => {
+  const baseClasses = "px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2";
+  const variants = {
+    primary: "bg-gradient-to-r from-blue-600 to-blue-800 text-white hover:shadow-lg hover:-translate-y-0.5",
+    secondary: "bg-white border-2 border-gray-300 text-gray-700 hover:border-blue-600",
+    danger: "bg-red-600 text-white hover:bg-red-700",
+    success: "bg-green-600 text-white hover:bg-green-700"
+  };
+  
+  return (
+    <button 
+      onClick={onClick} 
+      className={`${baseClasses} ${variants[variant]}`}
+      {...props}
+    >
+      {Icon && <Icon size={18} />}
+      {children}
+    </button>
+  );
+};
+
+// Card Component
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-xl p-6 shadow-lg border border-gray-200 ${className}`}>
+    {children}
+  </div>
+);
+
+// Progress Bar Component
+const ProgressBar = ({ value, label, showPercentage = true }) => (
+  <div className="space-y-2">
+    {label && (
+      <div className="flex justify-between text-sm font-semibold text-gray-600">
+        <span>{label}</span>
+        {showPercentage && <span>{Math.round(value)}%</span>}
+      </div>
+    )}
+    <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+      <div 
+        className="h-full bg-gradient-to-r from-blue-600 to-blue-800 transition-all duration-500 shadow-inner"
+        style={{ width: `${value}%` }}
+      />
+    </div>
+  </div>
+);
+
+// Badge Component
+const Badge = ({ children, variant = 'gray' }) => {
+  const variants = {
+    gray: 'bg-gray-100 text-gray-700',
+    red: 'bg-red-100 text-red-700',
+    yellow: 'bg-yellow-100 text-yellow-700',
+    blue: 'bg-blue-100 text-blue-700',
+    green: 'bg-green-100 text-green-700'
+  };
+  
+  return (
+    <span className={`px-3 py-1 rounded-md font-bold text-xs ${variants[variant]}`}>
+      {children}
+    </span>
+  );
+};
+
+// ============================================================================
+// AUTH SCREENS
+// ============================================================================
+
+const UploadScreen = ({ onFileUpload }) => {
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
     
-    <script>
-        const ADMIN_PASSWORD = 'admin123';
-        let appData = null;
-        let currentUser = null;
-        let isAdmin = false;
-        let currentQuestionnaire = null;
-        let questionnaireAnswers = {};
-        let adminActiveTab = 'engineers';
-        
-        function loadData() {
-            const stored = localStorage.getItem('baxter-competency-data');
-            if (stored) {
-                appData = JSON.parse(stored);
-                return true;
-            }
-            return false;
-        }
-        
-        function saveData() {
-            localStorage.setItem('baxter-competency-data', JSON.stringify(appData));
-        }
-        
-        function showUploadScreen() {
-            document.getElementById('app').innerHTML = `
-                <div class="auth-screen">
-                    <div class="auth-card">
-                        <div class="baxter-logo auth-logo">B</div>
-                        <h1 class="text-center">Baxter Healthcare</h1>
-                        <p class="subtitle text-center mb-4">Competency Management System</p>
-                        
-                        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-                            <div style="font-size: 3.5rem; margin-bottom: 1rem;">📁</div>
-                            <div style="color: var(--baxter-blue); font-weight: 700; font-size: 1.25rem; margin-bottom: 0.5rem;">Upload Excel File</div>
-                            <div style="color: var(--text-secondary); font-size: 0.875rem;">Click to browse</div>
-                            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
-                        </div>
-                        
-                        <div style="margin-top: 2rem; padding: 1rem; background: var(--baxter-light-blue); border-radius: 0.5rem; text-align: center; font-size: 0.875rem; color: var(--baxter-dark-blue);">
-                            <strong>First time setup:</strong> Upload your Competency Matrix Excel file
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('fileInput').addEventListener('change', handleFileUpload);
-        }
-        
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    const dashboardSheet = workbook.Sheets['Dashboard'];
-                    const dashboardData = XLSX.utils.sheet_to_json(dashboardSheet, { header: 1 });
-                    
-                    const engineers = [];
-                    const areas = ['Line 7 Fill', 'Line 7 Tank Room', 'Line 7 Pack', 'Line 1', 'Line 6', 
-                                   'Viaflo Fill', 'Viaflo Pack', 'Viaflo Racking', 'Bottles Filling', 
-                                   'Bottles Packing', 'Mechanical', 'Electrical', 'Software', 'Safety'];
-                    
-                    for (let i = 2; i < dashboardData.length; i++) {
-                        const row = dashboardData[i];
-                        if (row[1] && row[1] !== 'Engineer') {
-                            const scores = {};
-                            areas.forEach((area, idx) => {
-                                scores[area] = typeof row[idx + 2] === 'number' ? row[idx + 2] : 0;
-                            });
-                            
-                            engineers.push({
-                                id: Date.now() + i,
-                                name: row[1],
-                                shift: row[0],
-                                password: 'password123',
-                                scores: scores
-                            });
-                        }
-                    }
-                    
-                    const questionsByArea = {};
-                    areas.forEach(areaName => {
-                        const sheet = workbook.Sheets[areaName];
-                        if (!sheet) return;
-                        
-                        const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                        const questions = [];
-                        
-                        for (let i = 2; i < sheetData.length; i++) {
-                            const row = sheetData[i];
-                            for (let j = 15; j < row.length; j++) {
-                                if (row[j] && typeof row[j] === 'string' && row[j].match(/^\d+\.\d+\.\d+$/)) {
-                                    const code = row[j];
-                                    const question = row[j + 1] || '';
-                                    if (question) {
-                                        questions.push({
-                                            id: `${areaName}-${code}`,
-                                            code: code,
-                                            question: question,
-                                            weight: 1
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                        
-                        if (questions.length > 0) {
-                            questionsByArea[areaName] = questions;
-                        }
-                    });
-                    
-                    const areaWeights = {};
-                    areas.forEach(area => { areaWeights[area] = 1; });
-                    
-                    appData = { engineers, areas, questionsByArea, areaWeights };
-                    saveData();
-                    
-                    alert('✓ File uploaded successfully!');
-                    showLoginScreen();
-                } catch (err) {
-                    alert('Error loading file: ' + err.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-        
-        function showLoginScreen() {
-            document.getElementById('app').innerHTML = `
-                <div class="auth-screen">
-                    <div class="auth-card">
-                        <div class="baxter-logo auth-logo">B</div>
-                        <h1 class="text-center">Baxter Healthcare</h1>
-                        <p class="subtitle text-center mb-4">Competency Management System</p>
-                        
-                        <div class="form-group">
-                            <label class="label">Engineer Name</label>
-                            <input type="text" id="loginName" placeholder="Enter your name">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label class="label">Password</label>
-                            <input type="password" id="loginPassword" placeholder="Enter password">
-                        </div>
-                        
-                        <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Sign In</button>
-                        
-                        <div style="margin: 1.5rem 0; text-align: center; position: relative;">
-                            <div style="border-top: 2px solid var(--border); position: absolute; width: 100%; top: 50%;"></div>
-                            <span style="background: white; padding: 0 1rem; position: relative; color: var(--text-secondary); font-size: 0.875rem; font-weight: 600;">OR</span>
-                        </div>
-                        
-                        <button class="btn btn-secondary" style="width: 100%;" onclick="handleAdminLogin()">
-                            🔒 Admin Portal
-                        </button>
-                        
-                        <div style="margin-top: 2rem; padding: 1rem; background: var(--baxter-light-blue); border-radius: 0.5rem; text-align: center; font-size: 0.8125rem; color: var(--baxter-dark-blue);">
-                            <strong>Default:</strong> password123 | <strong>Admin:</strong> admin123
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.getElementById('loginPassword').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleLogin();
-            });
-        }
-        
-        function handleLogin() {
-            const name = document.getElementById('loginName').value;
-            const pass = document.getElementById('loginPassword').value;
-            
-            const engineer = appData.engineers.find(e => e.name.toLowerCase() === name.toLowerCase());
-            if (!engineer) {
-                alert('❌ Engineer not found');
-                return;
-            }
-            
-            if (engineer.password === pass) {
-                currentUser = engineer;
-                showDashboard();
-            } else {
-                alert('❌ Incorrect password');
-            }
-        }
-        
-        function handleAdminLogin() {
-            const pass = document.getElementById('loginPassword').value;
-            if (pass === ADMIN_PASSWORD) {
-                isAdmin = true;
-                showAdminPanel();
-            } else {
-                alert('❌ Incorrect admin password');
-            }
-        }
-        
-        function calculateWeightedScore(engineer) {
-            let totalWeighted = 0;
-            let totalWeight = 0;
-            
-            appData.areas.forEach(area => {
-                const score = engineer.scores[area] || 0;
-                const weight = appData.areaWeights[area] || 1;
-                totalWeighted += score * weight;
-                totalWeight += weight;
-            });
-            
-            return totalWeight > 0 ? totalWeighted / totalWeight : 0;
-        }
-        
-        function getScoreBadgeClass(score) {
-            if (score >= 0.8) return 'badge-green';
-            if (score >= 0.6) return 'badge-blue';
-            if (score >= 0.4) return 'badge-yellow';
-            return 'badge-red';
-        }
-        
-        function showDashboard() {
-            const weightedScore = calculateWeightedScore(currentUser);
-            
-            let areasHTML = '';
-            appData.areas.forEach(area => {
-                const score = currentUser.scores[area] || 0;
-                const weight = appData.areaWeights[area] || 1;
-                const badgeClass = getScoreBadgeClass(score);
-                
-                areasHTML += `
-                    <div class="area-card">
-                        <div class="flex-between mb-2">
-                            <h3>${area}</h3>
-                            <div class="flex gap-1" style="align-items: center;">
-                                <span style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 600; background: #f1f5f9; padding: 0.375rem 0.75rem; border-radius: 0.375rem;">Weight: ×${weight.toFixed(1)}</span>
-                                <span class="badge ${badgeClass}">${(score * 100).toFixed(0)}%</span>
-                                <button class="btn btn-primary" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;" onclick="startQuestionnaire('${area}')">
-                                    ✏️ Update
-                                </button>
-                            </div>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${score * 100}%;"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('app').innerHTML = `
-                <div class="header">
-                    <div class="header-content">
-                        <div class="header-title">
-                            <div class="baxter-logo">B</div>
-                            <div>
-                                <h1>Welcome, ${currentUser.name}</h1>
-                                <p class="subtitle">Shift ${currentUser.shift} • Baxter Healthcare</p>
-                            </div>
-                        </div>
-                        <button class="btn btn-secondary" onclick="logout()">
-                            🚪 Sign Out
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="container">
-                    <div class="score-hero">
-                        <h2 style="color: white; margin-bottom: 1rem;">Overall Performance Score</h2>
-                        <div class="flex-between">
-                            <div>
-                                <p style="opacity: 0.9; font-size: 0.9375rem; margin-bottom: 0.5rem;">Weighted Competency Score</p>
-                                <div class="score-number">${(weightedScore * 100).toFixed(1)}%</div>
-                            </div>
-                            <div style="width: 18rem; background: rgba(255,255,255,0.2); border-radius: 9999px; height: 1.5rem;">
-                                <div style="background: white; height: 1.5rem; border-radius: 9999px; width: ${weightedScore * 100}%; transition: width 0.5s;"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="card">
-                        <h2>Your Competency Areas</h2>
-                        ${areasHTML}
-                    </div>
-                </div>
-            `;
-        }
-        
-        function startQuestionnaire(areaName) {
-            const questions = appData.questionsByArea[areaName] || [];
-            if (questions.length === 0) {
-                alert('❌ No questions found for ' + areaName);
-                return;
-            }
-            
-            currentQuestionnaire = { areaName, questions };
-            questionnaireAnswers = {};
-            showQuestionnaireScreen();
-        }
-        
-        function showQuestionnaireScreen() {
-            const completed = Object.keys(questionnaireAnswers).length;
-            const total = currentQuestionnaire.questions.length;
-            const progress = total > 0 ? (completed / total) * 100 : 0;
-            
-            let questionsHTML = '';
-            currentQuestionnaire.questions.forEach(q => {
-                const answer = questionnaireAnswers[q.code] || null;
-                questionsHTML += `
-                    <div class="question-card">
-                        <div class="mb-2">
-                            <div class="flex-between mb-1">
-                                <span class="badge badge-blue">${q.code}</span>
-                                <span style="font-size: 0.875rem; color: var(--text-secondary); font-weight: 600;">Weight: ×${(q.weight || 1).toFixed(1)}</span>
-                            </div>
-                            <p style="font-size: 1.0625rem; font-weight: 500; line-height: 1.6; color: var(--text-primary);">${q.question}</p>
-                        </div>
-                        <div class="level-grid">
-                            ${[0, 1, 2, 3].map(level => `
-                                <button class="level-btn ${answer === level ? 'active' : ''}" onclick="setAnswer('${q.code}', ${level})">
-                                    <div style="font-size: 1.25rem; font-weight: 800;">L${level}</div>
-                                    <div style="font-size: 0.75rem; margin-top: 0.25rem;">${['None', 'Basic', 'Exp', 'Expert'][level]}</div>
-                                </button>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('app').innerHTML = `
-                <div class="header">
-                    <div class="header-content">
-                        <div class="header-title">
-                            <div class="baxter-logo">B</div>
-                            <div>
-                                <h1>${currentQuestionnaire.areaName}</h1>
-                                <p class="subtitle">${currentUser.name} • Assessment</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button class="btn btn-secondary" onclick="showDashboard()">
-                                ← Back
-                            </button>
-                            <button class="btn btn-success" onclick="saveQuestionnaire()">
-                                💾 Save Progress
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="card" style="margin: 0; border-radius: 0; box-shadow: none; border-left: none; border-right: none;">
-                    <div style="max-width: 90rem; margin: 0 auto;">
-                        <div class="progress-container">
-                            <div class="progress-label">
-                                <span>Progress: ${completed} of ${total} questions</span>
-                                <span>${progress.toFixed(0)}% Complete</span>
-                            </div>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${progress}%;"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="container">
-                    <div style="background: var(--baxter-light-blue); border: 2px solid #93c5fd; border-radius: 0.75rem; padding: 1.25rem; margin-bottom: 2rem;">
-                        <div style="font-weight: 700; color: var(--baxter-dark-blue); margin-bottom: 0.5rem;">📋 Assessment Instructions</div>
-                        <div style="color: var(--text-secondary); font-size: 0.9375rem; line-height: 1.6;">
-                            Rate your competency level for each question: <strong>L0 (None)</strong> - No knowledge, <strong>L1 (Basic)</strong> - Basic understanding, <strong>L2 (Experienced)</strong> - Can perform independently, <strong>L3 (Expert)</strong> - Can train others
-                        </div>
-                    </div>
-                    
-                    ${questionsHTML}
-                </div>
-            `;
-        }
-        
-        function setAnswer(code, level) {
-            questionnaireAnswers[code] = level;
-            showQuestionnaireScreen();
-        }
-        
-        function saveQuestionnaire() {
-            const questions = currentQuestionnaire.questions;
-            const totalQuestions = questions.length;
-            
-            if (Object.keys(questionnaireAnswers).length < totalQuestions) {
-                if (!confirm('⚠️ You have not answered all questions. Save anyway?')) {
-                    return;
-                }
-            }
-            
-            let totalScore = 0;
-            let totalWeight = 0;
-            
-            questions.forEach(q => {
-                const answer = questionnaireAnswers[q.code];
-                if (answer !== undefined) {
-                    const weight = q.weight || 1;
-                    totalScore += (answer / 3) * weight;
-                    totalWeight += weight;
-                }
-            });
-            
-            const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
-            
-            const engineerIndex = appData.engineers.findIndex(e => e.id === currentUser.id);
-            if (engineerIndex !== -1) {
-                appData.engineers[engineerIndex].scores[currentQuestionnaire.areaName] = finalScore;
-                currentUser.scores[currentQuestionnaire.areaName] = finalScore;
-                saveData();
-                
-                alert(`✓ Assessment saved! Score: ${(finalScore * 100).toFixed(1)}%`);
-                showDashboard();
-            }
-        }
-        
-        function showAdminPanel() {
-            const statsHTML = generateAdminStats();
-            
-            document.getElementById('app').innerHTML = `
-                <div class="header">
-                    <div class="header-content">
-                        <div class="header-title">
-                            <div class="baxter-logo">B</div>
-                            <div>
-                                <h1>Admin Dashboard</h1>
-                                <p class="subtitle">Baxter Healthcare • Management Console</p>
-                            </div>
-                        </div>
-                        <div class="flex gap-1">
-                            <button class="btn btn-secondary" onclick="exportToExcel()">
-                                📊 Export Data
-                            </button>
-                            <button class="btn btn-danger" onclick="logout()">
-                                🚪 Sign Out
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="container">
-                    ${statsHTML}
-                    
-                    <div class="card">
-                        <div class="tabs">
-                            <button class="tab ${adminActiveTab === 'engineers' ? 'active' : ''}" onclick="setAdminTab('engineers')">
-                                👥 Engineers
-                            </button>
-                            <button class="tab ${adminActiveTab === 'areas' ? 'active' : ''}" onclick="setAdminTab('areas')">
-                                📚 Areas & Weights
-                            </button>
-                            <button class="tab ${adminActiveTab === 'questions' ? 'active' : ''}" onclick="setAdminTab('questions')">
-                                ❓ Questions
-                            </button>
-                        </div>
-                        
-                        <div id="adminTabContent"></div>
-                    </div>
-                </div>
-            `;
-            
-            renderAdminTabContent();
-        }
-        
-        function generateAdminStats() {
-            const totalEngineers = appData.engineers.length;
-            const avgScore = appData.engineers.reduce((sum, e) => sum + calculateWeightedScore(e), 0) / totalEngineers;
-            const totalAreas = appData.areas.length;
-            const totalQuestions = Object.values(appData.questionsByArea).reduce((sum, qs) => sum + qs.length, 0);
-            
-            return `
-                <div class="grid-4 mb-4">
-                    <div class="card" style="background: linear-gradient(135deg, #059669, #047857); color: white;">
-                        <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Engineers</div>
-                        <div style="font-size: 2.5rem; font-weight: 800;">${totalEngineers}</div>
-                    </div>
-                    <div class="card" style="background: linear-gradient(135deg, var(--baxter-blue), var(--baxter-dark-blue)); color: white;">
-                        <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Average Score</div>
-                        <div style="font-size: 2.5rem; font-weight: 800;">${(avgScore * 100).toFixed(1)}%</div>
-                    </div>
-                    <div class="card" style="background: linear-gradient(135deg, #d97706, #b45309); color: white;">
-                        <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Competency Areas</div>
-                        <div style="font-size: 2.5rem; font-weight: 800;">${totalAreas}</div>
-                    </div>
-                    <div class="card" style="background: linear-gradient(135deg, #dc2626, #b91c1c); color: white;">
-                        <div style="font-size: 0.875rem; opacity: 0.9; margin-bottom: 0.5rem;">Total Questions</div>
-                        <div style="font-size: 2.5rem; font-weight: 800;">${totalQuestions}</div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        function setAdminTab(tab) {
-            adminActiveTab = tab;
-            showAdminPanel();
-        }
-        
-        function renderAdminTabContent() {
-            const content = document.getElementById('adminTabContent');
-            
-            if (adminActiveTab === 'engineers') {
-                let rows = '';
-                appData.engineers.forEach(eng => {
-                    const score = calculateWeightedScore(eng);
-                    const badgeClass = getScoreBadgeClass(score);
-                    rows += `
-                        <tr>
-                            <td><strong>${eng.name}</strong></td>
-                            <td>${eng.shift}</td>
-                            <td><span class="badge ${badgeClass}">${(score * 100).toFixed(1)}%</span></td>
-                            <td>
-                                <button class="btn btn-secondary" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;" onclick="viewEngineerDetails(${eng.id})">
-                                    👁️ View Details
-                                </button>
-                                <button class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;" onclick="deleteEngineer(${eng.id})">
-                                    🗑️ Delete
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                content.innerHTML = `
-                    <div class="flex-between mb-2">
-                        <h3>Engineer List</h3>
-                        <button class="btn btn-primary" onclick="addNewEngineer()">
-                            ➕ Add Engineer
-                        </button>
-                    </div>
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Shift</th>
-                                <th>Overall Score</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                    </table>
-                `;
-            } else if (adminActiveTab === 'areas') {
-                let areasHTML = '';
-                appData.areas.forEach(area => {
-                    const weight = appData.areaWeights[area] || 1;
-                    const questionCount = (appData.questionsByArea[area] || []).length;
-                    areasHTML += `
-                        <div class="area-card">
-                            <div class="flex-between">
-                                <div>
-                                    <h3>${area}</h3>
-                                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.5rem;">
-                                        ${questionCount} questions
-                                    </p>
-                                </div>
-                                <div class="flex gap-1" style="align-items: center;">
-                                    <input type="number" value="${weight}" step="0.1" min="0" max="10" 
-                                           style="width: 5rem; padding: 0.5rem;" 
-                                           onchange="updateAreaWeight('${area}', this.value)">
-                                    <button class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;" onclick="deleteArea('${area}')">
-                                        🗑️
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                });
-                
-                content.innerHTML = `
-                    <div class="flex-between mb-2">
-                        <h3>Competency Areas</h3>
-                        <button class="btn btn-primary" onclick="addNewArea()">
-                            ➕ Add Area
-                        </button>
-                    </div>
-                    ${areasHTML}
-                `;
-            } else if (adminActiveTab === 'questions') {
-                let areaSelector = '<select id="questionAreaSelect" class="mb-2" onchange="renderAdminTabContent()">';
-                appData.areas.forEach(area => {
-                    areaSelector += `<option value="${area}">${area}</option>`;
-                });
-                areaSelector += '</select>';
-                
-                content.innerHTML = `
-                    <div class="flex-between mb-2">
-                        <h3>Questions Management</h3>
-                        <button class="btn btn-primary" onclick="addNewQuestion()">
-                            ➕ Add Question
-                        </button>
-                    </div>
-                    ${areaSelector}
-                    <div id="questionsList"></div>
-                `;
-                
-                setTimeout(() => {
-                    const selectedArea = document.getElementById('questionAreaSelect').value;
-                    const questions = appData.questionsByArea[selectedArea] || [];
-                    
-                    let questionsHTML = '';
-                    questions.forEach((q, idx) => {
-                        questionsHTML += `
-                            <div class="question-card">
-                                <div class="flex-between mb-2">
-                                    <div>
-                                        <span class="badge badge-blue">${q.code}</span>
-                                        <p style="margin-top: 0.5rem; font-weight: 500;">${q.question}</p>
-                                    </div>
-                                    <div class="flex gap-1" style="align-items: center;">
-                                        <input type="number" value="${q.weight || 1}" step="0.1" min="0" max="10" 
-                                               style="width: 5rem; padding: 0.5rem;" 
-                                               onchange="updateQuestionWeight('${selectedArea}', ${idx}, this.value)">
-                                        <button class="btn btn-danger" style="padding: 0.5rem 0.75rem; font-size: 0.875rem;" 
-                                                onclick="deleteQuestion('${selectedArea}', ${idx})">
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    
-                    document.getElementById('questionsList').innerHTML = questionsHTML || '<p class="text-muted">No questions found for this area.</p>';
-                }, 0);
-            }
-        }
-        
-        function viewEngineerDetails(engineerId) {
-            const engineer = appData.engineers.find(e => e.id === engineerId);
-            if (!engineer) return;
-            
-            let detailsHTML = '';
-            appData.areas.forEach(area => {
-                const score = engineer.scores[area] || 0;
-                const badgeClass = getScoreBadgeClass(score);
-                detailsHTML += `
-                    <div class="area-card">
-                        <div class="flex-between">
-                            <h3>${area}</h3>
-                            <span class="badge ${badgeClass}">${(score * 100).toFixed(1)}%</span>
-                        </div>
-                        <div class="progress-bar mt-2">
-                            <div class="progress-fill" style="width: ${score * 100}%;"></div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            document.getElementById('app').innerHTML = `
-                <div class="header">
-                    <div class="header-content">
-                        <div class="header-title">
-                            <div class="baxter-logo">B</div>
-                            <div>
-                                <h1>${engineer.name}</h1>
-                                <p class="subtitle">Shift ${engineer.shift} • Detailed View</p>
-                            </div>
-                        </div>
-                        <button class="btn btn-secondary" onclick="showAdminPanel()">
-                            ← Back to Admin
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="container">
-                    <div class="score-hero">
-                        <h2 style="color: white; margin-bottom: 1rem;">Overall Performance</h2>
-                        <div class="score-number">${(calculateWeightedScore(engineer) * 100).toFixed(1)}%</div>
-                    </div>
-                    
-                    <div class="card">
-                        <h2>Competency Breakdown</h2>
-                        ${detailsHTML}
-                    </div>
-                </div>
-            `;
-        }
-        
-        function addNewEngineer() {
-            const name = prompt('Enter engineer name:');
-            if (!name) return;
-            
-            const shift = prompt('Enter shift:');
-            if (!shift) return;
-            
-            const scores = {};
-            appData.areas.forEach(area => {
-                scores[area] = 0;
-            });
-            
-            appData.engineers.push({
-                id: Date.now(),
-                name: name,
-                shift: shift,
+    try {
+      // Import XLSX dynamically
+      const XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.0/package/xlsx.mjs');
+      
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const data = new Uint8Array(event.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          const dashboardSheet = workbook.Sheets['Dashboard'];
+          const dashboardData = XLSX.utils.sheet_to_json(dashboardSheet, { header: 1 });
+          
+          const engineers = [];
+          const areas = ['Line 7 Fill', 'Line 7 Tank Room', 'Line 7 Pack', 'Line 1', 'Line 6', 
+                         'Viaflo Fill', 'Viaflo Pack', 'Viaflo Racking', 'Bottles Filling', 
+                         'Bottles Packing', 'Mechanical', 'Electrical', 'Software', 'Safety'];
+          
+          for (let i = 2; i < dashboardData.length; i++) {
+            const row = dashboardData[i];
+            if (row[1] && row[1] !== 'Engineer') {
+              const scores = {};
+              areas.forEach((area, idx) => {
+                scores[area] = typeof row[idx + 2] === 'number' ? row[idx + 2] : 0;
+              });
+              
+              engineers.push({
+                id: Date.now() + i,
+                name: row[1],
+                shift: row[0],
                 password: 'password123',
                 scores: scores
-            });
+              });
+            }
+          }
+          
+          const questionsByArea = {};
+          areas.forEach(areaName => {
+            const sheet = workbook.Sheets[areaName];
+            if (!sheet) return;
             
-            saveData();
-            showAdminPanel();
-        }
-        
-        function deleteEngineer(id) {
-            if (!confirm('⚠️ Delete this engineer? This cannot be undone.')) return;
+            const sheetData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+            const questions = [];
             
-            appData.engineers = appData.engineers.filter(e => e.id !== id);
-            saveData();
-            showAdminPanel();
-        }
-        
-        function updateAreaWeight(area, weight) {
-            appData.areaWeights[area] = parseFloat(weight);
-            saveData();
-        }
-        
-        function addNewArea() {
-            const name = prompt('Enter area name:');
-            if (!name) return;
-            
-            appData.areas.push(name);
-            appData.areaWeights[name] = 1;
-            appData.questionsByArea[name] = [];
-            
-            appData.engineers.forEach(eng => {
-                eng.scores[name] = 0;
-            });
-            
-            saveData();
-            showAdminPanel();
-        }
-        
-        function deleteArea(area) {
-            if (!confirm(`⚠️ Delete area "${area}"? This will remove all associated questions.`)) return;
-            
-            appData.areas = appData.areas.filter(a => a !== area);
-            delete appData.areaWeights[area];
-            delete appData.questionsByArea[area];
-            
-            appData.engineers.forEach(eng => {
-                delete eng.scores[area];
-            });
-            
-            saveData();
-            showAdminPanel();
-        }
-        
-        function addNewQuestion() {
-            const area = document.getElementById('questionAreaSelect').value;
-            const code = prompt('Enter question code (e.g., 1.2.3):');
-            if (!code) return;
-            
-            const question = prompt('Enter question text:');
-            if (!question) return;
-            
-            if (!appData.questionsByArea[area]) {
-                appData.questionsByArea[area] = [];
+            for (let i = 2; i < sheetData.length; i++) {
+              const row = sheetData[i];
+              for (let j = 15; j < row.length; j++) {
+                if (row[j] && typeof row[j] === 'string' && row[j].match(/^\d+\.\d+\.\d+$/)) {
+                  const code = row[j];
+                  const question = row[j + 1] || '';
+                  if (question) {
+                    questions.push({
+                      id: `${areaName}-${code}`,
+                      code: code,
+                      question: question,
+                      weight: 1
+                    });
+                  }
+                }
+              }
             }
             
-            appData.questionsByArea[area].push({
-                id: `${area}-${code}`,
-                code: code,
-                question: question,
-                weight: 1
-            });
-            
-            saveData();
-            renderAdminTabContent();
+            if (questions.length > 0) {
+              questionsByArea[areaName] = questions;
+            }
+          });
+          
+          const areaWeights = {};
+          areas.forEach(area => { areaWeights[area] = 1; });
+          
+          await onFileUpload({ engineers, areas, questionsByArea, areaWeights });
+          alert('✓ File uploaded successfully!');
+        } catch (err) {
+          alert('Error loading file: ' + err.message);
         }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      alert('Error processing file: ' + error.message);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
+      <Card className="max-w-md w-full">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg mx-auto mb-6">
+          B
+        </div>
+        <h1 className="text-3xl font-bold text-center text-gray-900">Baxter Healthcare</h1>
+        <p className="text-center text-gray-600 mt-2 mb-8">Competency Management System</p>
         
-        function updateQuestionWeight(area, idx, weight) {
-            appData.questionsByArea[area][idx].weight = parseFloat(weight);
-            saveData();
-        }
+        <label className="block cursor-pointer">
+          <div className="border-3 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-blue-600 hover:bg-blue-50 transition-all">
+            <Upload className="mx-auto mb-4 text-blue-600" size={48} />
+            <div className="text-blue-600 font-bold text-lg mb-2">Upload Excel File</div>
+            <div className="text-gray-500 text-sm">Click to browse</div>
+            <input 
+              type="file" 
+              accept=".xlsx,.xls" 
+              onChange={handleFileChange}
+              className="hidden"
+            />
+          </div>
+        </label>
         
-        function deleteQuestion(area, idx) {
-            if (!confirm('⚠️ Delete this question?')) return;
-            
-            appData.questionsByArea[area].splice(idx, 1);
-            saveData();
-            renderAdminTabContent();
-        }
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg text-center text-sm text-blue-900">
+          <strong>First time setup:</strong> Upload your Competency Matrix Excel file
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+const LoginScreen = ({ onLogin, onAdminLogin, engineers }) => {
+  const [name, setName] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleLogin = () => {
+    const engineer = engineers.find(e => e.name.toLowerCase() === name.toLowerCase());
+    if (!engineer) {
+      alert('❌ Engineer not found');
+      return;
+    }
+    if (engineer.password === password) {
+      onLogin(engineer);
+    } else {
+      alert('❌ Incorrect password');
+    }
+  };
+
+  const handleAdminLogin = () => {
+    if (password === 'admin123') {
+      onAdminLogin();
+    } else {
+      alert('❌ Incorrect admin password');
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-8 bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
+      <Card className="max-w-md w-full">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center text-white font-bold text-3xl shadow-lg mx-auto mb-6">
+          B
+        </div>
+        <h1 className="text-3xl font-bold text-center text-gray-900">Baxter Healthcare</h1>
+        <p className="text-center text-gray-600 mt-2 mb-8">Competency Management System</p>
         
-        function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            
-            const dashboardData = [['Shift', 'Engineer', ...appData.areas]];
-            appData.engineers.forEach(eng => {
-                const row = [eng.shift, eng.name];
-                appData.areas.forEach(area => {
-                    row.push(eng.scores[area] || 0);
-                });
-                dashboardData.push(row);
-            });
-            
-            const dashboardSheet = XLSX.utils.aoa_to_sheet(dashboardData);
-            XLSX.utils.book_append_sheet(wb, dashboardSheet, 'Dashboard');
-            
-            XLSX.writeFile(wb, 'Baxter_Competency_Export.xlsx');
-        }
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Engineer Name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              placeholder="Enter password"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none"
+            />
+          </div>
+          
+          <Button onClick={handleLogin} className="w-full justify-center">
+            Sign In
+          </Button>
+          
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t-2 border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500 font-semibold">OR</span>
+            </div>
+          </div>
+          
+          <Button onClick={handleAdminLogin} variant="secondary" className="w-full justify-center">
+            🔒 Admin Portal
+          </Button>
+          
+          <div className="mt-6 p-4 bg-blue-50 rounded-lg text-center text-sm text-blue-900">
+            <strong>Default:</strong> password123 | <strong>Admin:</strong> admin123
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+// ============================================================================
+// ENGINEER DASHBOARD
+// ============================================================================
+
+const EngineerDashboard = ({ engineer, areas, areaWeights, onUpdateArea, onLogout }) => {
+  const weightedScore = calculateWeightedScore(engineer, areaWeights);
+
+  return (
+    <>
+      <Header 
+        title={`Welcome, ${engineer.name}`}
+        subtitle={`Shift ${engineer.shift} • Baxter Healthcare`}
+        rightContent={<Button onClick={onLogout} variant="secondary" icon={LogOut}>Sign Out</Button>}
+      />
+      
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-8 text-white shadow-xl">
+          <h2 className="text-2xl font-bold mb-4">Overall Performance Score</h2>
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-blue-100 mb-2">Weighted Competency Score</p>
+              <div className="text-6xl font-bold">{(weightedScore * 100).toFixed(1)}%</div>
+            </div>
+            <div className="w-64 h-6 bg-blue-400 bg-opacity-30 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-white rounded-full transition-all duration-500"
+                style={{ width: `${weightedScore * 100}%` }}
+              />
+            </div>
+          </div>
+        </div>
         
-        function logout() {
-            currentUser = null;
-            isAdmin = false;
-            currentQuestionnaire = null;
-            questionnaireAnswers = {};
-            showLoginScreen();
+        <Card>
+          <h2 className="text-2xl font-bold mb-6">Your Competency Areas</h2>
+          <div className="space-y-4">
+            {areas.map(area => {
+              const score = engineer.scores[area] || 0;
+              const weight = areaWeights[area] || 1;
+              const badgeClass = getScoreBadgeClass(score);
+              
+              return (
+                <div key={area} className="border-2 border-gray-200 rounded-xl p-6 hover:border-blue-600 hover:shadow-md transition-all">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="text-xl font-semibold">{area}</h3>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-md">
+                        Weight: ×{weight.toFixed(1)}
+                      </span>
+                      <Badge variant={score >= 0.8 ? 'green' : score >= 0.6 ? 'blue' : score >= 0.4 ? 'yellow' : 'red'}>
+                        {(score * 100).toFixed(0)}%
+                      </Badge>
+                      <Button onClick={() => onUpdateArea(area)} variant="primary">
+                        ✏️ Update
+                      </Button>
+                    </div>
+                  </div>
+                  <ProgressBar value={score * 100} />
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+};
+
+// ============================================================================
+// QUESTIONNAIRE
+// ============================================================================
+
+const Questionnaire = ({ area, questions, engineer, onSave, onBack, areaWeights }) => {
+  const [answers, setAnswers] = useState({});
+
+  const completed = Object.keys(answers).length;
+  const total = questions.length;
+  const progress = total > 0 ? (completed / total) * 100 : 0;
+
+  const handleSave = () => {
+    if (completed < total) {
+      if (!confirm('⚠️ You have not answered all questions. Save anyway?')) {
+        return;
+      }
+    }
+
+    let totalScore = 0;
+    let totalWeight = 0;
+
+    questions.forEach(q => {
+      const answer = answers[q.code];
+      if (answer !== undefined) {
+        const weight = q.weight || 1;
+        totalScore += (answer / 3) * weight;
+        totalWeight += weight;
+      }
+    });
+
+    const finalScore = totalWeight > 0 ? totalScore / totalWeight : 0;
+    onSave(area, finalScore);
+  };
+
+  return (
+    <>
+      <Header 
+        title={area}
+        subtitle={`${engineer.name} • Assessment`}
+        rightContent={
+          <div className="flex gap-2">
+            <Button onClick={onBack} variant="secondary" icon={ArrowLeft}>Back</Button>
+            <Button onClick={handleSave} variant="success" icon={Save}>Save Progress</Button>
+          </div>
         }
+      />
+      
+      <div className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <ProgressBar value={progress} label={`Progress: ${completed} of ${total} questions`} />
+        </div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+          <div className="font-bold text-blue-900 mb-2">📋 Assessment Instructions</div>
+          <div className="text-gray-700 text-sm leading-relaxed">
+            Rate your competency level for each question: <strong>L0 (None)</strong> - No knowledge, 
+            <strong> L1 (Basic)</strong> - Basic understanding, <strong>L2 (Experienced)</strong> - Can perform independently, 
+            <strong> L3 (Expert)</strong> - Can train others
+          </div>
+        </div>
         
-        // Initialize
-        if (loadData()) {
-            showLoginScreen();
-        } else {
-            showUploadScreen();
+        {questions.map(q => (
+          <Card key={q.code}>
+            <div className="mb-4">
+              <div className="flex justify-between items-center mb-3">
+                <Badge variant="blue">{q.code}</Badge>
+                <span className="text-sm font-semibold text-gray-600">Weight: ×{(q.weight || 1).toFixed(1)}</span>
+              </div>
+              <p className="text-lg font-medium text-gray-900 leading-relaxed">{q.question}</p>
+            </div>
+            
+            <div className="grid grid-cols-4 gap-3">
+              {[0, 1, 2, 3].map(level => (
+                <button
+                  key={level}
+                  onClick={() => setAnswers({...answers, [q.code]: level})}
+                  className={`p-5 border-2 rounded-lg font-bold text-center transition-all ${
+                    answers[q.code] === level 
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-lg' 
+                      : 'border-gray-300 bg-white hover:border-blue-600 hover:bg-blue-50'
+                  }`}
+                >
+                  <div className="text-xl font-extrabold">L{level}</div>
+                  <div className="text-xs mt-1">{['None', 'Basic', 'Exp', 'Expert'][level]}</div>
+                </button>
+              ))}
+            </div>
+          </Card>
+        ))}
+      </div>
+    </>
+  );
+};
+
+// ============================================================================
+// ADMIN PANEL
+// ============================================================================
+
+const AdminPanel = ({ appData, onUpdateData, onLogout }) => {
+  const [activeTab, setActiveTab] = useState('engineers');
+  const [selectedEngineer, setSelectedEngineer] = useState(null);
+
+  const { engineers, areas, questionsByArea, areaWeights } = appData;
+
+  const totalEngineers = engineers.length;
+  const avgScore = engineers.reduce((sum, e) => sum + calculateWeightedScore(e, areaWeights), 0) / totalEngineers || 0;
+  const totalAreas = areas.length;
+  const totalQuestions = Object.values(questionsByArea).reduce((sum, qs) => sum + qs.length, 0);
+
+  if (selectedEngineer) {
+    const engineer = engineers.find(e => e.id === selectedEngineer);
+    return (
+      <>
+        <Header 
+          title={engineer.name}
+          subtitle={`Shift ${engineer.shift} • Detailed View`}
+          rightContent={<Button onClick={() => setSelectedEngineer(null)} variant="secondary" icon={ArrowLeft}>Back to Admin</Button>}
+        />
+        
+        <div className="max-w-7xl mx-auto p-6 space-y-6">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-8 text-white shadow-xl">
+            <h2 className="text-2xl font-bold mb-4">Overall Performance</h2>
+            <div className="text-6xl font-bold">{(calculateWeightedScore(engineer, areaWeights) * 100).toFixed(1)}%</div>
+          </div>
+          
+          <Card>
+            <h2 className="text-2xl font-bold mb-6">Competency Breakdown</h2>
+            <div className="space-y-4">
+              {areas.map(area => {
+                const score = engineer.scores[area] || 0;
+                const badgeClass = getScoreBadgeClass(score);
+                return (
+                  <div key={area} className="border-2 border-gray-200 rounded-xl p-6">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-xl font-semibold">{area}</h3>
+                      <Badge variant={score >= 0.8 ? 'green' : score >= 0.6 ? 'blue' : score >= 0.4 ? 'yellow' : 'red'}>
+                        {(score * 100).toFixed(1)}%
+                      </Badge>
+                    </div>
+                    <ProgressBar value={score * 100} />
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      </>
+    );
+  }
+
+  const handleAddEngineer = () => {
+    const name = prompt('Enter engineer name:');
+    if (!name) return;
+    const shift = prompt('Enter shift:');
+    if (!shift) return;
+    
+    const scores = {};
+    areas.forEach(area => { scores[area] = 0; });
+    
+    const newEngineers = [...engineers, {
+      id: Date.now(),
+      name,
+      shift,
+      password: 'password123',
+      scores
+    }];
+    
+    onUpdateData({ ...appData, engineers: newEngineers });
+  };
+
+  const handleDeleteEngineer = (id) => {
+    if (!confirm('⚠️ Delete this engineer? This cannot be undone.')) return;
+    const newEngineers = engineers.filter(e => e.id !== id);
+    onUpdateData({ ...appData, engineers: newEngineers });
+  };
+
+  return (
+    <>
+      <Header 
+        title="Admin Dashboard"
+        subtitle="Baxter Healthcare • Management Console"
+        rightContent={
+          <div className="flex gap-2">
+            <Button onClick={() => alert('Export functionality')} variant="secondary" icon={Download}>
+              Export Data
+            </Button>
+            <Button onClick={onLogout} variant="danger" icon={LogOut}>Sign Out</Button>
+          </div>
         }
-    </script>
-</body>
-</html>
+      />
+      
+      <div className="max-w-7xl mx-auto p-6 space-y-6">
+        <div className="grid grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white">
+            <div className="text-sm opacity-90 mb-2">Total Engineers</div>
+            <div className="text-4xl font-bold">{totalEngineers}</div>
+          </Card>
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+            <div className="text-sm opacity-90 mb-2">Average Score</div>
+            <div className="text-4xl font-bold">{(avgScore * 100).toFixed(1)}%</div>
+          </Card>
+          <Card className="bg-gradient-to-br from-orange-600 to-orange-700 text-white">
+            <div className="text-sm opacity-90 mb-2">Competency Areas</div>
+            <div className="text-4xl font-bold">{totalAreas}</div>
+          </Card>
+          <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white">
+            <div className="text-sm opacity-90 mb-2">Total Questions</div>
+            <div className="text-4xl font-bold">{totalQuestions}</div>
+          </Card>
+        </div>
+        
+        <Card>
+          <div className="flex border-b-2 border-gray-200 mb-6">
+            {['engineers', 'areas', 'questions'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-3 font-semibold capitalize transition-all border-b-3 ${
+                  activeTab === tab 
+                    ? 'border-blue-600 text-blue-600 bg-blue-50' 
+                    : 'border-transparent text-gray-600 hover:text-blue-600 hover:bg-blue-50'
+                }`}
+              >
+                {tab === 'engineers' && <Users className="inline mr-2" size={18} />}
+                {tab === 'areas' && <BookOpen className="inline mr-2" size={18} />}
+                {tab === 'questions' && <HelpCircle className="inline mr-2" size={18} />}
+                {tab}
+              </button>
+            ))}
+          </div>
+          
+          {activeTab === 'engineers' && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Engineer List</h3>
+                <Button onClick={handleAddEngineer} icon={Plus}>Add Engineer
